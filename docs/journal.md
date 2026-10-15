@@ -1,6 +1,6 @@
 # Journal de développement
 
-## Session 1 — 2026-XX-XX ✅
+## Session 1 — 2026-10-15 ✅
 
 ### Réalisé
 - Structure projet : include/ src/ build/
