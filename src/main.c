@@ -2,6 +2,7 @@
 #include <windows.h>  /* Sleep() sous Windows */
 #include "engine_ecu.h"
 #include "can_frame.h"
+#include "dashboard_ecu.h"   /* ← ajout Session 2 */
 
 static void print_can_frame(const can_frame_t *f) {
     printf("CAN ID=0x%03X DLC=%u DATA=", f->id, f->dlc);
@@ -13,6 +14,10 @@ static void print_can_frame(const can_frame_t *f) {
 int main(void) {
     engine_ecu_state_t ecu;
     engine_ecu_init(&ecu);
+
+    /* ← ajout Session 2 : instance du Dashboard */
+    dashboard_ecu_state_t dash;
+    dashboard_ecu_init(&dash);
 
     sensor_inputs_t in = {
         .rpm = 0,
@@ -39,6 +44,10 @@ int main(void) {
         print_can_frame(&f);
         printf("\n");
 
+        /* ← ajout Session 2 : le Dashboard reçoit la trame */
+        dashboard_ecu_receive(&dash, &f);
+        dashboard_ecu_print(&dash);
+
         Sleep(100);
     }
 
@@ -47,5 +56,11 @@ int main(void) {
     for (uint8_t i = 0; i < ecu.dtc_count; i++) {
         printf("  - DTC 0x%04X\n", ecu.dtc_list[i]);
     }
+
+    /* ← ajout Session 2 : bilan Dashboard */
+    printf("\n=== Bilan Dashboard ===\n");
+    printf("Trames reçues : %u\n", dash.rx_count);
+    printf("Trames rejetées : %u\n", dash.err_count);
+
     return 0;
 }

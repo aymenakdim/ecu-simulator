@@ -2,12 +2,12 @@
 #define CAN_FRAME_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "engine_ecu.h"
 
-/* IDs CAN (format custom, à documenter dans un DBC en vrai projet) */
+/* IDs CAN */
 #define CAN_ID_ENGINE_STATUS  0x100U
-
-#define CAN_DLC 8U
+#define CAN_DLC               8U
 
 typedef struct {
     uint32_t id;
@@ -25,7 +25,30 @@ typedef struct {
  *  Octet 6   : engine_running (0 ou 1)
  *  Octet 7   : dtc_count
  */
+
+/* Image physique décodée d'une trame ENGINE_STATUS.
+ * Distincte de engine_ecu_state_t : c'est ce qu'un récepteur
+ * (Dashboard, outil diag) voit sur le bus, sans accès à l'état
+ * interne de l'ECU émetteur. */
+typedef struct {
+    uint16_t rpm;
+    int16_t  coolant_temp_c;
+    uint8_t  throttle_pct;
+    uint16_t vehicle_speed_kph;
+    bool     engine_running;
+    uint8_t  dtc_count;
+} engine_status_decoded_t;
+
+/* Encode l'état ECU en trame CAN (Session 1). */
 can_frame_t engine_encode_can(const engine_ecu_state_t *ecu,
                               uint16_t vehicle_speed_kph);
 
+/* Décode une trame CAN en image physique (Session 2).
+ * Retourne 1 si la trame est valide (bon ID, bon DLC), 0 sinon.
+ * En cas d'erreur, *out est laissé dans un état indéterminé :
+ * l'appelant doit tester le retour AVANT d'utiliser *out. */
+int can_decode_engine_status(const can_frame_t *frame,
+                             engine_status_decoded_t *out);
+
 #endif /* CAN_FRAME_H */
+

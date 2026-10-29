@@ -32,3 +32,32 @@ can_frame_t engine_encode_can(const engine_ecu_state_t *ecu,
 
     return frame;
 }
+
+int can_decode_engine_status(const can_frame_t *frame,
+                             engine_status_decoded_t *out) {
+    if (!frame || !out) return 0;
+    if (frame->id  != CAN_ID_ENGINE_STATUS) return 0;
+    if (frame->dlc != CAN_DLC)              return 0;
+
+    engine_status_decoded_t d;
+
+    /* RPM : big-endian, 0.25 tr/min/bit → /4 */
+    uint16_t rpm_raw = ((uint16_t)frame->data[0] << 8) | frame->data[1];
+    d.rpm = (uint16_t)(rpm_raw / 4U);
+
+    /* Coolant temp : offset -40 */
+    d.coolant_temp_c = (int16_t)frame->data[2] - 40;
+
+    /* Throttle direct */
+    d.throttle_pct = frame->data[3];
+
+    /* Speed : big-endian, 0.01 km/h/bit → /100 */
+    uint16_t speed_raw = ((uint16_t)frame->data[4] << 8) | frame->data[5];
+    d.vehicle_speed_kph = (uint16_t)(speed_raw / 100U);
+
+    d.engine_running = (frame->data[6] != 0U);
+    d.dtc_count      = frame->data[7];
+
+    *out = d;
+    return 1;
+}
