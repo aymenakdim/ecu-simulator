@@ -1,14 +1,19 @@
 # Automotive ECU Network & Diagnostic Simulator
 
-Simulation logicielle d'un réseau d'ECUs automobiles en C : bus CAN, diagnostic UDS, détection de fautes (DTC) et tests unitaires.
+[![CI - Build & Test](https://github.com/aymenakdim/ecu-simulator/actions/workflows/ci.yml/badge.svg)](https://github.com/aymenakdim/ecu-simulator/actions/workflows/ci.yml)
 
-## Statut
+Simulation logicielle d'un réseau d'ECUs automobiles en C : bus CAN, diagnostic UDS, détection de fautes (DTC), tests unitaires et pipeline CI/CD.
 
-- [x] Session 1 : ECU moteur virtuel + trame CAN
+## Statut du Projet
+
+- [x] Session 1 : ECU moteur virtuel et trame CAN
 - [x] Session 2 : Dashboard ECU (décodage + round-trip)
-- [x] Session 3 : Bus CAN multi-ECUs & Injection de fautes
+- [x] Session 3 : Bus CAN simulé multi-ECUs & Injection de fautes
 - [x] Session 4 : Gestion avancée des DTC & Timeout
 - [x] Session 5 : Diagnostic UDS sur ISO-TP (Single Frame)
+- [x] Session 6 : Tests automatisés (Intégration C/Python avec pytest)
+- [x] Session 7 : Intégration CMake & Refactoring de l'architecture
+- [x] Session 8 : Documentation, CI/CD (GitHub Actions) et finalisation
 
 ## Architecture
 
@@ -26,39 +31,24 @@ Simulation logicielle d'un réseau d'ECUs automobiles en C : bus CAN, diagnostic
 
 ## Résumé des Sessions
 
-### Sessions 1 & 2 : ECU Moteur & Dashboard
-- Simulation capteurs avec validation.
-- Encodage/Décodage Big-Endian avec facteurs d'échelle (RPM, Temp, Vitesse).
-- Détection des surchauffes (DTC P0217) et surrégimes (DTC P0219).
-- **53 tests unitaires** (Round-trip encode/decode avec tolérance).
+### Sessions 1 à 5 : Logique Métier & Réseau
+- Simulation capteurs, encodage/décodage Big-Endian.
+- Bus CAN FIFO et détection des données obsolètes (`is_stale`).
+- Implémentation UDS (ISO 14229) : `0x14` (Clear DTC), `0x19` (Read DTC), `0x22` (Read Data).
+- **454 tests unitaires C** validés.
 
-### Session 3 : Réseau & Robustesse
-- **Bus CAN FIFO** : Découplage émetteur/récepteur pour simuler le broadcast.
-- **Timeout Monitoring** : Détection des données obsolètes (`is_stale`) après 500 ms sans réception.
-- **Fault Injection** : Test de la tolérance aux pannes (trames corrompues, ID inconnus).
-- **381 tests unitaires** ajoutés (Bus, Timeout, Fautes).
-
-### Sessions 4 & 5 : Diagnostic UDS (ISO 14229)
-- Implémentation du protocole de diagnostic standard automobile.
-- Encapsulation **ISO-TP Single Frame** (le 1er octet définit la longueur).
-- Services supportés : `0x14` (Effacer DTC), `0x19` (Lire DTC), `0x22` (Lire données temps réel).
-- Gestion des réponses négatives (NRC).
-- **20 tests unitaires** ajoutés (Cycle complet Requête -> Bus -> Réponse).
-
-*Total : 454 tests automatisés.*
+### Sessions 6 à 8 : Industrialisation & CI/CD
+- **CMake & Ninja** : Génération de build portable et rapide.
+- **CTest** : Lancement automatisé des exécutables de test C.
+- **pytest** : Couche d'intégration Python (exécute les binaires C et vérifie les codes de retour).
+- **pytest-html** : Génération de rapports de test visuels (HTML).
+- **GitHub Actions** : Pipeline d'intégration continue (CI) déclenché à chaque `push` (compilation + CTest + pytest sur machine Windows vierge).
 
 ## Compilation & Tests
 
+Le projet utilise **CMake** et **Ninja** pour une compilation standardisée.
+
+### 1. Compiler le projet
 ```bash
-mkdir -p build
-
-# 1. Compiler l'application principale
-gcc -Wall -Wextra -Wpedantic -std=c11 -Iinclude src/*.c -o build/ecu_sim.exe
-./build/ecu_sim.exe
-
-# 2. Compiler et lancer TOUS les tests
-gcc -Wall -Wextra -Wpedantic -std=c11 -Iinclude src/can_frame.c src/engine_ecu.c src/sensors.c tests/test_roundtrip.c -o build/test_roundtrip.exe && ./build/test_roundtrip.exe
-gcc -Wall -Wextra -Wpedantic -std=c11 -Iinclude src/can_bus.c src/can_frame.c src/engine_ecu.c src/sensors.c tests/test_can_bus.c -o build/test_can_bus.exe && ./build/test_can_bus.exe
-gcc -Wall -Wextra -Wpedantic -std=c11 -Iinclude src/can_frame.c src/engine_ecu.c src/sensors.c src/dashboard_ecu.c tests/test_dashboard_timeout.c -o build/test_dashboard_timeout.exe && ./build/test_dashboard_timeout.exe
-gcc -Wall -Wextra -Wpedantic -std=c11 -Iinclude src/can_frame.c src/engine_ecu.c src/sensors.c src/dashboard_ecu.c src/fault_injector.c tests/test_fault_injection.c -o build/test_fault_injection.exe && ./build/test_fault_injection.exe
-gcc -Wall -Wextra -Wpedantic -std=c11 -Iinclude src/can_frame.c src/engine_ecu.c src/sensors.c src/uds_server.c src/diag_ecu.c tests/test_uds.c -o build/test_uds.exe && ./build/test_uds.exe
+cmake -B build -G Ninja
+cmake --build build
