@@ -1,0 +1,64 @@
+name: CI - Build & Test
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+    # 1. Récupérer le code du dépôt
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # 2. Installer MSYS2 (qui contient GCC, CMake, Ninja)
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-ninja
+          make
+
+    # 3. Installer Python (pour pytest)
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    # 4. Compiler avec CMake et Ninja
+    - name: Configure CMake
+      shell: msys2 {0}
+      run: cmake -B build -G Ninja
+
+    - name: Build
+      shell: msys2 {0}
+      run: cmake --build build
+
+    # 5. Lancer les tests C (CTest)
+    - name: Run CTest
+      shell: msys2 {0}
+      run: ctest --test-dir build --output-on-failure
+
+    # 6. Installer les dépendances Python et lancer pytest
+    - name: Install Python dependencies
+      run: pip install pytest pytest-html
+
+    - name: Run Pytest (Integration)
+      shell: msys2 {0}
+      run: pytest tests/integration/ -v --html=build/rapport_tests.html --self-contained-html
+
+    # 7. Sauvegarder le rapport HTML (même si les tests échouent)
+    - name: Upload HTML Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: rapport-pytest-html
+        path: build/rapport_tests.html
