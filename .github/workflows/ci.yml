@@ -52,7 +52,6 @@ jobs:
       run: pip install pytest pytest-html
 
     - name: Run Pytest (Integration)
-      shell: msys2 {0}
       run: pytest tests/integration/ -v --html=build/rapport_tests.html --self-contained-html
 
     # 7. Sauvegarder le rapport HTML (même si les tests échouent)
